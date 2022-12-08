@@ -10,7 +10,7 @@ SALTED_KEY_FILE = './secret-salted.key'
 INITIAL_VECTOR_FILE = './initial-vector.bin'
 
 
-def encrypt(FILE_TO_ENCRYPT):
+def encrypt(file_to_encrypt):
     # Check if the key is salted before or not
     if not os.path.isfile(SALTED_KEY_FILE):
         # Read the key from the file
@@ -36,7 +36,7 @@ def encrypt(FILE_TO_ENCRYPT):
     print(f'Algorithm key is: {hex_key}')
 
     # Read the file to encrypt
-    with open(FILE_TO_ENCRYPT, 'r') as plain_file:
+    with open(file_to_encrypt, 'r') as plain_file:
         file_content = plain_file.read()
 
     # If initial-vector.bin file exists, read it else create it
@@ -55,12 +55,19 @@ def encrypt(FILE_TO_ENCRYPT):
     print(f'Encrypted file is: {encrypted}')
 
     # Write the encrypted file
-    with open(FILE_TO_ENCRYPT + '.enc', 'wb') as enc_file:
+    with open(file_to_encrypt + '.enc', 'wb') as enc_file:
         enc_file.write(encrypted)
 
 
-def decrypt(FILE_TO_DECRYPT):
+def decrypt(file_to_decrypt):
     pass
+
+
+def main(*args):
+    if args[0] == 'D':
+        return decrypt(args[1])
+    else:
+        return encrypt(args[1])
 
 
 if __name__ == '__main__':
@@ -70,7 +77,4 @@ if __name__ == '__main__':
         print('Usage: python3 aestools.py D|E <file to decryot/encrypt>')
         sys.exit(1)
     else:
-        if args[0] == 'D':
-            sys.exit(decrypt(args[1]))
-        else:
-            sys.exit(encrypt(args[1]))
+        sys.exit(main(*args))
