@@ -11,59 +11,47 @@ SALTED_KEY_FILE = './secret-salted.key'
 INITIAL_VECTOR_FILE = './initial-vector.bin'
 
 
-def salt_key():
-    # Read the key from the file
-    with open(SECRET_FILE, 'r') as key_file:
-        key = key_file.read().strip()
+def read_full_file(file_name, mode):
+    with open(file_name, mode) as file:
+        return file.read()
 
-    # Create 16 byte salt using os lib
-    salt = os.urandom(16)
+
+def write_to_file(file_name, mode, content):
+    with open(file_name, mode) as file:
+        file.write(content)
+
+
+def salt_key(key, salt_bytes=16):
+    # Create salt using os lib
+    salt = os.urandom(salt_bytes)
 
     # Expand the key to 256 bits (32 Bytes)
     key = pbkdf2.PBKDF2(key, salt).read(32)
-
-    # Write the salted key to the file
-    with open(SALTED_KEY_FILE, 'wb') as key_file:
-        key_file.write(key)
 
     return key
 
 
 def encrypt(file_to_encrypt):
     # Check if the key is salted before or not
-    if not os.path.isfile(SALTED_KEY_FILE):
-        key = salt_key()
+    if os.path.isfile(SALTED_KEY_FILE):
+        key = read_full_file(SALTED_KEY_FILE, 'rb')
     else:
-        # Read the key from the secret-salted.key file
-        with open(SALTED_KEY_FILE, 'rb') as key_file:
-            key = key_file.read()
+        key = salt_key(read_full_file(SECRET_FILE, 'r').strip())
+        write_to_file(SALTED_KEY_FILE, 'wb', key)
 
-    # Show HEX representation of the key
-    hex_key = binascii.hexlify(key)
-    print(f'Algorithm key is: {hex_key}')
-
-    # Read the file to encrypt
-    with open(file_to_encrypt, 'r') as plain_file:
-        file_content = plain_file.read()
+    print(f'Algorithm key is: {binascii.hexlify(key)}')
 
     # If initial-vector.bin file exists, read it else create it
     if os.path.isfile(INITIAL_VECTOR_FILE):
-        with open(INITIAL_VECTOR_FILE, 'r') as iv_file:
-            iv = int(iv_file.read())
+        iv = int(read_full_file(INITIAL_VECTOR_FILE, 'r'))
     else:
-        # Create initialization vector for CTR mode
         iv = secrets.randbits(256)
-        with open(INITIAL_VECTOR_FILE, 'w') as iv_file:
-            iv_file.write(str(iv))
+        write_to_file(INITIAL_VECTOR_FILE, 'w', str(iv))
 
     # AES 256 CTR mode
     aes = pyaes.AESModeOfOperationCTR(key, pyaes.Counter(iv))
-    encrypted = aes.encrypt(file_content)
-    print(f'Encrypted file is: {encrypted}')
-
-    # Write the encrypted file
-    with open(file_to_encrypt + '.enc', 'wb') as enc_file:
-        enc_file.write(encrypted)
+    with open(file_to_encrypt, 'rb') as f1, open(file_to_encrypt + '.enc', 'wb') as f2:
+        pyaes.encrypt_stream(aes, f1, f2)
 
 
 def decrypt(file_to_decrypt):
@@ -72,27 +60,18 @@ def decrypt(file_to_decrypt):
         print('Key file does not exist. You need to provide it in "secret-salted.key" file.')
         return 1
 
-    # Read the key from the secret-salted.key file
-    with open(SALTED_KEY_FILE, 'rb') as key_file:
-        key = key_file.read()
-
     # Check if the initial vector file exists
     if not os.path.isfile(INITIAL_VECTOR_FILE):
         print('Initial vector file does not exist. You need to provide it in "initial-vector.bin" file.')
         return 1
 
-    # Read the initial vector from the file
-    with open(INITIAL_VECTOR_FILE, 'r') as iv_file:
-        iv = int(iv_file.read())
+    key = read_full_file(SALTED_KEY_FILE, 'rb')
+    iv = int(read_full_file(INITIAL_VECTOR_FILE, 'r'))
 
     # AES 256 CTR mode
     aes = pyaes.AESModeOfOperationCTR(key, pyaes.Counter(iv))
-    decrypted = aes.decrypt(file_to_decrypt)
-    print(f'Decrypted file is: {decrypted}')
-
-    # Write the decrypted file
-    with open(file_to_decrypt + '.dec', 'wb') as dec_file:
-        dec_file.write(decrypted)
+    with open(file_to_decrypt, 'rb') as f1, open(file_to_decrypt + '.dec', 'wb') as f2:
+        pyaes.decrypt_stream(aes, f1, f2)
 
 
 def main(*args):
