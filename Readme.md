@@ -20,8 +20,10 @@ pip install -r requirements.txt
 
 ## Usage
 
-Simply run the `aestools.py` file:
+To do encryption, Simply run the `aestools.py` file with this args:
 
 ```bash
-python3 aestools.py
+python3 aestools.py <D|E> <file to decrypt/encrypt>
 ```
+
+replace `<D|E>` with `D` for decrypt and `E` for encrypt and `<file to decrypt/encrypt>` with the file you want to encrypt/decrypt.
