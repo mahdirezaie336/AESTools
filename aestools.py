@@ -52,6 +52,7 @@ def encrypt(file_to_encrypt):
     aes = pyaes.AESModeOfOperationCTR(key, pyaes.Counter(iv))
     with open(file_to_encrypt, 'rb') as f1, open(file_to_encrypt + '.enc', 'wb') as f2:
         pyaes.encrypt_stream(aes, f1, f2)
+        print('Encryption done. Check the file: ' + file_to_encrypt + '.enc')
 
 
 def decrypt(file_to_decrypt):
@@ -68,10 +69,13 @@ def decrypt(file_to_decrypt):
     key = read_full_file(SALTED_KEY_FILE, 'rb')
     iv = int(read_full_file(INITIAL_VECTOR_FILE, 'r'))
 
+    print(f'Algorithm key is: {binascii.hexlify(key)}')
+
     # AES 256 CTR mode
     aes = pyaes.AESModeOfOperationCTR(key, pyaes.Counter(iv))
     with open(file_to_decrypt, 'rb') as f1, open(file_to_decrypt + '.dec', 'wb') as f2:
         pyaes.decrypt_stream(aes, f1, f2)
+        print('Decryption done. Check the file: ' + file_to_decrypt + '.dec')
 
 
 def main(*args):
