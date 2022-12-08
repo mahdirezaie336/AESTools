@@ -6,26 +6,33 @@ import secrets
 import pyaes
 
 
+SECRET_FILE = './secret.key'
 SALTED_KEY_FILE = './secret-salted.key'
 INITIAL_VECTOR_FILE = './initial-vector.bin'
+
+
+def salt_key():
+    # Read the key from the file
+    with open(SECRET_FILE, 'r') as key_file:
+        key = key_file.read().strip()
+
+    # Create 16 byte salt using os lib
+    salt = os.urandom(16)
+
+    # Expand the key to 256 bits (32 Bytes)
+    key = pbkdf2.PBKDF2(key, salt).read(32)
+
+    # Write the salted key to the file
+    with open(SALTED_KEY_FILE, 'wb') as key_file:
+        key_file.write(key)
+
+    return key
 
 
 def encrypt(file_to_encrypt):
     # Check if the key is salted before or not
     if not os.path.isfile(SALTED_KEY_FILE):
-        # Read the key from the file
-        with open('./secret.key', 'r') as key_file:
-            key = key_file.read().strip()
-
-        # Create 16 byte salt using os lib
-        salt = os.urandom(16)
-
-        # Expand the key to 256 bits (32 Bytes)
-        key = pbkdf2.PBKDF2(key, salt).read(32)
-
-        # Write the salted key to the file
-        with open(SALTED_KEY_FILE, 'wb') as key_file:
-            key_file.write(key)
+        key = salt_key()
     else:
         # Read the key from the secret-salted.key file
         with open(SALTED_KEY_FILE, 'rb') as key_file:
@@ -60,13 +67,38 @@ def encrypt(file_to_encrypt):
 
 
 def decrypt(file_to_decrypt):
-    pass
+    # Check if the salted key file exists
+    if not os.path.isfile(SALTED_KEY_FILE):
+        print('Key file does not exist. You need to provide it in "secret-salted.key" file.')
+        return 1
+
+    # Read the key from the secret-salted.key file
+    with open(SALTED_KEY_FILE, 'rb') as key_file:
+        key = key_file.read()
+
+    # Check if the initial vector file exists
+    if not os.path.isfile(INITIAL_VECTOR_FILE):
+        print('Initial vector file does not exist. You need to provide it in "initial-vector.bin" file.')
+        return 1
+
+    # Read the initial vector from the file
+    with open(INITIAL_VECTOR_FILE, 'r') as iv_file:
+        iv = int(iv_file.read())
+
+    # AES 256 CTR mode
+    aes = pyaes.AESModeOfOperationCTR(key, pyaes.Counter(iv))
+    decrypted = aes.decrypt(file_to_decrypt)
+    print(f'Decrypted file is: {decrypted}')
+
+    # Write the decrypted file
+    with open(file_to_decrypt + '.dec', 'wb') as dec_file:
+        dec_file.write(decrypted)
 
 
 def main(*args):
     if args[0] == 'D':
         return decrypt(args[1])
-    else:
+    elif args[0] == 'E':
         return encrypt(args[1])
 
 
@@ -74,7 +106,7 @@ if __name__ == '__main__':
     # Get input args
     args = sys.argv[1:]
     if len(args) < 2:
-        print('Usage: python3 aestools.py D|E <file to decryot/encrypt>')
+        print('Usage: python3 aestools.py <D|E> <file to decrypt/encrypt>')
         sys.exit(1)
     else:
         sys.exit(main(*args))
