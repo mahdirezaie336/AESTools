@@ -2,6 +2,8 @@ import sys
 import os
 import pbkdf2
 import binascii
+import secrets
+import pyaes
 
 # Read the key from the file
 with open('./secret.key', 'r') as f:
@@ -16,3 +18,7 @@ with open('./secret.key', 'r') as f:
     # Show HEX representation of the key
     hex_key = binascii.hexlify(key)
     print(hex_key)
+
+    # Create initialization vector for CTR mode
+    iv = secrets.randbits(256)
+
