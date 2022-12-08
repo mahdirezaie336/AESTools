@@ -1,15 +1,18 @@
 import sys
 import os
 import pbkdf2
+import binascii
 
 # Read the key from the file
 with open('./secret.key', 'r') as f:
     key = f.read().strip()
 
-    # Add 16 byte salt using os lib
-    key = key.encode() + os.urandom(16)
+    # Create 16 byte salt using os lib
+    salt = os.urandom(16)
 
-    # Expand the key to 256 bits
-    key = pbkdf2.PBKDF2(key).read(32)
+    # Expand the key to 256 bits (32 Bytes)
+    key = pbkdf2.PBKDF2(key, salt).read(32)
 
-
+    # Show HEX representation of the key
+    hex_key = binascii.hexlify(key)
+    print(hex_key)
